@@ -12,6 +12,7 @@ import AddProperty from './pages/Properties/AddProperty';
 import TenantsList from './pages/Tenants/TenantsList';
 import MaintenanceList from './pages/Maintenance/MaintenanceList';
 import PaymentsList from './pages/Financial/PaymentsList';
+import PlatformDashboard from './pages/SuperAdmin/PlatformDashboard';
 
 // Create a custom theme
 const theme = createTheme({
@@ -104,11 +105,23 @@ const theme = createTheme({
 });
 
 // Protected Route component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: string }> = ({ 
+  children, 
+  requiredRole 
+}) => {
   const { state } = useAppContext();
   
   if (!state.isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  
+  if (requiredRole && state.user?.role !== requiredRole) {
+    // Redirect to appropriate dashboard based on role
+    if (state.user?.role === 'super_admin') {
+      return <Navigate to="/super-admin" replace />;
+    } else {
+      return <Navigate to="/" replace />;
+    }
   }
   
   return <>{children}</>;
@@ -119,18 +132,24 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { state } = useAppContext();
   
   if (state.isAuthenticated) {
-    return <Navigate to="/" replace />;
+    // Redirect based on user role
+    if (state.user?.role === 'super_admin') {
+      return <Navigate to="/super-admin" replace />;
+    } else {
+      return <Navigate to="/" replace />;
+    }
   }
   
   return <>{children}</>;
 };
 
-// Enhanced Login component
+// Enhanced Login component with role selection
 const Login: React.FC = () => {
   const { dispatch } = useAppContext();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [selectedRole, setSelectedRole] = React.useState<'admin' | 'super_admin'>('admin');
   
-  const handleLogin = async () => {
+  const handleLogin = async (role: 'admin' | 'super_admin') => {
     setIsLoading(true);
     
     // Simulate API call
@@ -138,17 +157,8 @@ const Login: React.FC = () => {
     
     // Mock authentication
     localStorage.setItem('authToken', 'mock-token');
+    localStorage.setItem('userRole', role);
     dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-    dispatch({ type: 'SET_USER', payload: {
-      id: '1',
-      email: 'demo@propertypro.com',
-      firstName: 'Demo',
-      lastName: 'User',
-      role: 'admin',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true
-    }});
     
     setIsLoading(false);
   };
@@ -168,8 +178,8 @@ const Login: React.FC = () => {
         borderRadius: '16px',
         boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
         textAlign: 'center',
-        minWidth: '400px',
-        maxWidth: '500px'
+        minWidth: '500px',
+        maxWidth: '600px'
       }}>
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ 
@@ -185,23 +195,81 @@ const Login: React.FC = () => {
             marginBottom: '0',
             fontSize: '1.1rem'
           }}>
-            Advanced Property Management SaaS
+            Multi-Tenant Property Management SaaS
           </p>
         </div>
         
         <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
-          <h3 style={{ color: '#333', marginBottom: '1rem' }}>Demo Features:</h3>
-          <ul style={{ color: '#666', lineHeight: '1.6' }}>
-            <li>✓ Complete Property Portfolio Management</li>
-            <li>✓ Tenant & Lease Management</li>
-            <li>✓ Maintenance Work Orders</li>
-            <li>✓ Financial Tracking & Reporting</li>
-            <li>✓ Interactive Dashboard & Analytics</li>
-          </ul>
+          <h3 style={{ color: '#333', marginBottom: '1rem' }}>Choose Demo Role:</h3>
+          
+          {/* Super Admin Option */}
+          <div style={{
+            border: selectedRole === 'super_admin' ? '2px solid #1976d2' : '2px solid #e0e0e0',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            backgroundColor: selectedRole === 'super_admin' ? '#f3f7ff' : 'white'
+          }} onClick={() => setSelectedRole('super_admin')}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: '2px solid #1976d2',
+                backgroundColor: selectedRole === 'super_admin' ? '#1976d2' : 'white',
+                marginRight: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {selectedRole === 'super_admin' && (
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'white' }} />
+                )}
+              </div>
+              <h4 style={{ margin: 0, color: '#1976d2' }}>🔧 Super Admin</h4>
+            </div>
+            <p style={{ margin: 0, color: '#666', fontSize: '0.9rem', paddingLeft: '32px' }}>
+              Manage the entire SaaS platform, organizations, subscriptions, and system settings
+            </p>
+          </div>
+          
+          {/* Organization Admin Option */}
+          <div style={{
+            border: selectedRole === 'admin' ? '2px solid #1976d2' : '2px solid #e0e0e0',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            backgroundColor: selectedRole === 'admin' ? '#f3f7ff' : 'white'
+          }} onClick={() => setSelectedRole('admin')}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: '2px solid #1976d2',
+                backgroundColor: selectedRole === 'admin' ? '#1976d2' : 'white',
+                marginRight: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {selectedRole === 'admin' && (
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'white' }} />
+                )}
+              </div>
+              <h4 style={{ margin: 0, color: '#1976d2' }}>🏢 Organization Admin</h4>
+            </div>
+            <p style={{ margin: 0, color: '#666', fontSize: '0.9rem', paddingLeft: '32px' }}>
+              Manage your organization's properties, tenants, maintenance, and finances
+            </p>
+          </div>
         </div>
         
         <button
-          onClick={handleLogin}
+          onClick={() => handleLogin(selectedRole)}
           disabled={isLoading}
           style={{
             background: isLoading ? '#ccc' : '#1976d2',
@@ -216,7 +284,7 @@ const Login: React.FC = () => {
             transition: 'all 0.3s ease'
           }}
         >
-          {isLoading ? 'Loading...' : 'Enter Demo'}
+          {isLoading ? 'Loading...' : `Login as ${selectedRole === 'super_admin' ? 'Super Admin' : 'Organization Admin'}`}
         </button>
         
         <p style={{ 
@@ -225,7 +293,7 @@ const Login: React.FC = () => {
           marginTop: '1.5rem',
           marginBottom: '0'
         }}>
-          No registration required • Explore all features
+          No registration required • Switch between roles anytime
         </p>
       </div>
     </div>
@@ -285,7 +353,65 @@ function App() {
                 </AuthRoute>
               } />
               
-              {/* Protected Routes */}
+              {/* Super Admin Routes */}
+              <Route path="/super-admin" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <PlatformDashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/organizations" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Organizations Management" description="Comprehensive organization management with billing, users, and settings." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/organizations/add" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Add Organization" description="Create new organizations with subscription plans and initial setup." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/organizations/:id" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Organization Details" description="Detailed view of organization with usage analytics and management tools." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/billing" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Platform Billing" description="Manage subscriptions, invoices, and revenue analytics." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/users" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Platform Users" description="Manage all users across organizations with role-based permissions." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/analytics" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Platform Analytics" description="Advanced analytics and reporting for the entire platform." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/super-admin/settings" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <Layout>
+                    <ComingSoon title="Platform Settings" description="Configure platform-wide settings, integrations, and system preferences." />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              
+              {/* Organization Admin Routes */}
               <Route path="/" element={
                 <ProtectedRoute>
                   <Layout>

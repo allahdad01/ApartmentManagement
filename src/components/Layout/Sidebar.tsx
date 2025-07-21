@@ -12,7 +12,8 @@ import {
   Collapse,
   IconButton,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Chip
 } from '@mui/material';
 import {
   Dashboard,
@@ -39,9 +40,16 @@ import {
   CalendarMonth,
   Inventory,
   Security,
-  TrendingUp
+  TrendingUp,
+  SupervisorAccount,
+  CorporateFare,
+  AccountBalanceWallet,
+  PeopleAlt,
+  BarChart,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAppContext } from '../../context/AppContext';
 
 interface SidebarProps {
   open: boolean;
@@ -49,96 +57,305 @@ interface SidebarProps {
   variant?: 'permanent' | 'temporary';
 }
 
-interface NavItem {
-  text: string;
-  icon: React.ReactNode;
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ReactElement;
   path?: string;
-  children?: NavItem[];
+  children?: MenuItem[];
+  badge?: string | number;
+  roles?: string[]; // Roles that can see this menu item
 }
 
-const navigationItems: NavItem[] = [
+// Super Admin Menu Items
+const superAdminMenuItems: MenuItem[] = [
   {
-    text: 'Dashboard',
+    id: 'platform-dashboard',
+    label: 'Platform Dashboard',
     icon: <Dashboard />,
-    path: '/'
+    path: '/super-admin',
+    roles: ['super_admin']
   },
   {
-    text: 'Properties',
-    icon: <Business />,
+    id: 'organizations',
+    label: 'Organizations',
+    icon: <CorporateFare />,
+    roles: ['super_admin'],
     children: [
-      { text: 'All Properties', icon: <Apartment />, path: '/properties' },
-      { text: 'Add Property', icon: <Home />, path: '/properties/add' },
-      { text: 'Units', icon: <Inventory />, path: '/units' },
-      { text: 'Property Analytics', icon: <TrendingUp />, path: '/properties/analytics' }
+      {
+        id: 'organizations-list',
+        label: 'All Organizations',
+        icon: <Business />,
+        path: '/super-admin/organizations',
+        roles: ['super_admin']
+      },
+      {
+        id: 'add-organization',
+        label: 'Add Organization',
+        icon: <PersonAdd />,
+        path: '/super-admin/organizations/add',
+        roles: ['super_admin']
+      }
     ]
   },
   {
-    text: 'Tenants & Leases',
+    id: 'platform-billing',
+    label: 'Billing & Revenue',
+    icon: <AccountBalanceWallet />,
+    path: '/super-admin/billing',
+    roles: ['super_admin']
+  },
+  {
+    id: 'platform-users',
+    label: 'Platform Users',
+    icon: <PeopleAlt />,
+    path: '/super-admin/users',
+    roles: ['super_admin']
+  },
+  {
+    id: 'platform-analytics',
+    label: 'Platform Analytics',
+    icon: <BarChart />,
+    path: '/super-admin/analytics',
+    roles: ['super_admin']
+  },
+  {
+    id: 'platform-settings',
+    label: 'Platform Settings',
+    icon: <AdminPanelSettings />,
+    path: '/super-admin/settings',
+    roles: ['super_admin']
+  }
+];
+
+// Organization Admin Menu Items
+const organizationMenuItems: MenuItem[] = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: <Dashboard />,
+    path: '/',
+    roles: ['admin', 'property_manager', 'landlord']
+  },
+  {
+    id: 'properties',
+    label: 'Properties',
+    icon: <Home />,
+    roles: ['admin', 'property_manager', 'landlord'],
+    children: [
+      {
+        id: 'properties-list',
+        label: 'All Properties',
+        icon: <Business />,
+        path: '/properties',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'add-property',
+        label: 'Add Property',
+        icon: <Apartment />,
+        path: '/properties/add',
+        roles: ['admin', 'property_manager']
+      },
+      {
+        id: 'units',
+        label: 'Units Management',
+        icon: <Inventory />,
+        path: '/units',
+        roles: ['admin', 'property_manager']
+      }
+    ]
+  },
+  {
+    id: 'tenants',
+    label: 'Tenants & Leases',
     icon: <People />,
+    roles: ['admin', 'property_manager', 'landlord'],
     children: [
-      { text: 'All Tenants', icon: <People />, path: '/tenants' },
-      { text: 'Applications', icon: <PersonAdd />, path: '/applications' },
-      { text: 'Leases', icon: <Description />, path: '/leases' },
-      { text: 'Tenant Screening', icon: <Security />, path: '/screening' }
+      {
+        id: 'tenants-list',
+        label: 'All Tenants',
+        icon: <People />,
+        path: '/tenants',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'applications',
+        label: 'Applications',
+        icon: <Assignment />,
+        path: '/applications',
+        badge: '3',
+        roles: ['admin', 'property_manager']
+      },
+      {
+        id: 'leases',
+        label: 'Lease Management',
+        icon: <Description />,
+        path: '/leases',
+        roles: ['admin', 'property_manager']
+      },
+      {
+        id: 'screening',
+        label: 'Tenant Screening',
+        icon: <Security />,
+        path: '/screening',
+        roles: ['admin', 'property_manager']
+      }
     ]
   },
   {
-    text: 'Financial Management',
+    id: 'financial',
+    label: 'Financial',
     icon: <AttachMoney />,
+    roles: ['admin', 'property_manager', 'landlord'],
     children: [
-      { text: 'Rent Collection', icon: <Payment />, path: '/payments' },
-      { text: 'Invoices', icon: <Receipt />, path: '/invoices' },
-      { text: 'Expenses', icon: <AccountBalance />, path: '/expenses' },
-      { text: 'Financial Reports', icon: <Assessment />, path: '/reports/financial' }
+      {
+        id: 'payments',
+        label: 'Rent Collection',
+        icon: <Payment />,
+        path: '/payments',
+        badge: '2',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'invoices',
+        label: 'Invoices',
+        icon: <Receipt />,
+        path: '/invoices',
+        roles: ['admin', 'property_manager']
+      },
+      {
+        id: 'expenses',
+        label: 'Expenses',
+        icon: <TrendingUp />,
+        path: '/expenses',
+        roles: ['admin', 'property_manager']
+      }
     ]
   },
   {
-    text: 'Maintenance',
+    id: 'maintenance',
+    label: 'Maintenance',
     icon: <Build />,
+    roles: ['admin', 'property_manager', 'landlord'],
     children: [
-      { text: 'Work Orders', icon: <Build />, path: '/maintenance' },
-      { text: 'Vendors', icon: <Engineering />, path: '/vendors' },
-      { text: 'Preventive Maintenance', icon: <CalendarMonth />, path: '/maintenance/preventive' },
-      { text: 'Maintenance Calendar', icon: <CalendarMonth />, path: '/maintenance/calendar' }
+      {
+        id: 'maintenance-requests',
+        label: 'Work Orders',
+        icon: <Engineering />,
+        path: '/maintenance',
+        badge: '5',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'vendors',
+        label: 'Vendors',
+        icon: <SupervisorAccount />,
+        path: '/vendors',
+        roles: ['admin', 'property_manager']
+      },
+      {
+        id: 'preventive',
+        label: 'Preventive',
+        icon: <CalendarMonth />,
+        path: '/maintenance/preventive',
+        roles: ['admin', 'property_manager']
+      },
+      {
+        id: 'calendar',
+        label: 'Calendar',
+        icon: <CalendarMonth />,
+        path: '/maintenance/calendar',
+        roles: ['admin', 'property_manager']
+      }
     ]
   },
   {
-    text: 'Mortgage & Loans',
+    id: 'mortgages',
+    label: 'Mortgages',
     icon: <AccountBalance />,
+    roles: ['admin', 'landlord'],
     children: [
-      { text: 'Mortgages', icon: <AccountBalance />, path: '/mortgages' },
-      { text: 'Loan Calculator', icon: <Analytics />, path: '/mortgages/calculator' },
-      { text: 'Payment Schedule', icon: <CalendarMonth />, path: '/mortgages/schedule' }
+      {
+        id: 'mortgage-list',
+        label: 'All Mortgages',
+        icon: <AccountBalance />,
+        path: '/mortgages',
+        roles: ['admin', 'landlord']
+      },
+      {
+        id: 'calculator',
+        label: 'Loan Calculator',
+        icon: <Analytics />,
+        path: '/mortgages/calculator',
+        roles: ['admin', 'landlord']
+      },
+      {
+        id: 'schedule',
+        label: 'Payment Schedule',
+        icon: <CalendarMonth />,
+        path: '/mortgages/schedule',
+        roles: ['admin', 'landlord']
+      }
     ]
   },
   {
-    text: 'Reports & Analytics',
+    id: 'reports',
+    label: 'Reports',
     icon: <Assessment />,
+    roles: ['admin', 'property_manager', 'landlord'],
     children: [
-      { text: 'Financial Reports', icon: <Assessment />, path: '/reports/financial' },
-      { text: 'Occupancy Reports', icon: <Analytics />, path: '/reports/occupancy' },
-      { text: 'Rent Roll', icon: <Receipt />, path: '/reports/rent-roll' },
-      { text: 'Tax Reports', icon: <Description />, path: '/reports/tax' }
+      {
+        id: 'financial-reports',
+        label: 'Financial Reports',
+        icon: <TrendingUp />,
+        path: '/reports/financial',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'occupancy',
+        label: 'Occupancy Reports',
+        icon: <Home />,
+        path: '/reports/occupancy',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'rent-roll',
+        label: 'Rent Roll',
+        icon: <Receipt />,
+        path: '/reports/rent-roll',
+        roles: ['admin', 'property_manager', 'landlord']
+      },
+      {
+        id: 'tax-reports',
+        label: 'Tax Reports',
+        icon: <Assessment />,
+        path: '/reports/tax',
+        roles: ['admin', 'landlord']
+      }
     ]
   },
   {
-    text: 'Documents',
+    id: 'documents',
+    label: 'Documents',
     icon: <Description />,
-    path: '/documents'
+    path: '/documents',
+    roles: ['admin', 'property_manager', 'landlord']
   },
   {
-    text: 'Communications',
+    id: 'messages',
+    label: 'Messages',
     icon: <Notifications />,
-    children: [
-      { text: 'Messages', icon: <Notifications />, path: '/messages' },
-      { text: 'Notifications', icon: <Notifications />, path: '/notifications' },
-      { text: 'Email Templates', icon: <Assignment />, path: '/templates' }
-    ]
+    path: '/messages',
+    badge: '12',
+    roles: ['admin', 'property_manager', 'landlord']
   },
   {
-    text: 'Settings',
+    id: 'settings',
+    label: 'Settings',
     icon: <Settings />,
-    path: '/settings'
+    path: '/settings',
+    roles: ['admin']
   }
 ];
 
@@ -147,93 +364,111 @@ const Sidebar: React.FC<SidebarProps> = ({
   onClose, 
   variant = 'temporary' 
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { state } = useAppContext();
+
   const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
 
-  const handleItemClick = (item: NavItem) => {
-    if (item.children) {
-      const isExpanded = expandedItems.includes(item.text);
-      if (isExpanded) {
-        setExpandedItems(expandedItems.filter(text => text !== item.text));
-      } else {
-        setExpandedItems([...expandedItems, item.text]);
-      }
-    } else if (item.path) {
+  // Get appropriate menu items based on user role
+  const menuItems = state.user?.role === 'super_admin' 
+    ? superAdminMenuItems 
+    : organizationMenuItems;
+
+  const handleItemClick = (item: MenuItem) => {
+    if (item.path) {
       navigate(item.path);
       if (isMobile) {
         onClose();
       }
+    } else if (item.children) {
+      toggleExpanded(item.id);
     }
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
   };
 
-  const isParentActive = (item: NavItem) => {
+  const isItemActive = (item: MenuItem): boolean => {
+    if (item.path) {
+      return location.pathname === item.path;
+    }
     if (item.children) {
-      return item.children.some(child => child.path && isActive(child.path));
+      return item.children.some(child => location.pathname === child.path);
     }
     return false;
   };
 
-  const renderNavItem = (item: NavItem, level = 0) => {
+  const hasPermission = (item: MenuItem): boolean => {
+    if (!item.roles || !state.user) return true;
+    return item.roles.includes(state.user.role);
+  };
+
+  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+    if (!hasPermission(item)) return null;
+
+    const isActive = isItemActive(item);
+    const isExpanded = expandedItems.includes(item.id);
     const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedItems.includes(item.text);
-    const active = item.path ? isActive(item.path) : isParentActive(item);
 
     return (
-      <React.Fragment key={item.text}>
-        <ListItem disablePadding sx={{ pl: level * 2 }}>
+      <React.Fragment key={item.id}>
+        <ListItem disablePadding>
           <ListItemButton
             onClick={() => handleItemClick(item)}
-            selected={active}
             sx={{
-              minHeight: 48,
-              backgroundColor: active ? theme.palette.primary.main + '20' : 'transparent',
+              pl: level * 2 + 2,
+              pr: 2,
+              py: 1,
+              backgroundColor: isActive ? 'primary.main' : 'transparent',
+              color: isActive ? 'white' : 'text.primary',
               '&:hover': {
-                backgroundColor: theme.palette.primary.main + '10',
+                backgroundColor: isActive ? 'primary.dark' : 'action.hover',
               },
-              '&.Mui-selected': {
-                backgroundColor: theme.palette.primary.main + '20',
-                borderRight: `3px solid ${theme.palette.primary.main}`,
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.main + '30',
-                }
-              }
+              borderRadius: 1,
+              mx: 1,
+              mb: 0.5,
             }}
           >
             <ListItemIcon
               sx={{
-                minWidth: 0,
-                mr: open ? 3 : 'auto',
-                justifyContent: 'center',
-                color: active ? theme.palette.primary.main : 'inherit'
+                color: isActive ? 'white' : 'text.secondary',
+                minWidth: 40,
               }}
             >
               {item.icon}
             </ListItemIcon>
             <ListItemText 
-              primary={item.text} 
-              sx={{ 
-                opacity: open ? 1 : 0,
-                color: active ? theme.palette.primary.main : 'inherit',
-                fontWeight: active ? 600 : 400
-              }} 
+              primary={item.label}
+              primaryTypographyProps={{
+                fontSize: '0.875rem',
+                fontWeight: isActive ? 600 : 400,
+              }}
             />
-            {hasChildren && open && (
+            {item.badge && (
+              <Chip
+                label={item.badge}
+                size="small"
+                color="error"
+                sx={{ ml: 1, fontSize: '0.75rem', height: 20 }}
+              />
+            )}
+            {hasChildren && (
               isExpanded ? <ExpandLess /> : <ExpandMore />
             )}
           </ListItemButton>
         </ListItem>
         {hasChildren && (
-          <Collapse in={isExpanded && open} timeout="auto" unmountOnExit>
+          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {item.children!.map(child => renderNavItem(child, level + 1))}
+              {item.children!.map(child => renderMenuItem(child, level + 1))}
             </List>
           </Collapse>
         )}
@@ -242,63 +477,100 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: 280, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <Box 
-        sx={{ 
-          p: 2, 
-          display: 'flex', 
-          alignItems: 'center',
-          minHeight: 64,
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}
-      >
-        {open && (
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+      <Box sx={{ 
+        p: 2, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        borderBottom: 1,
+        borderColor: 'divider'
+      }}>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
             PropertyPro
           </Typography>
-        )}
-        {variant === 'permanent' && (
+          <Typography variant="caption" color="text.secondary">
+            {state.user?.role === 'super_admin' ? 'Super Admin Panel' : state.currentOrganization?.name || 'Property Management'}
+          </Typography>
+        </Box>
+        {isMobile && (
           <IconButton onClick={onClose} size="small">
             <MenuOpen />
           </IconButton>
         )}
       </Box>
 
-      {/* Navigation */}
+      {/* User Info */}
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Box sx={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            backgroundColor: 'primary.main',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mr: 2
+          }}>
+            <Typography variant="body2" color="white" fontWeight="bold">
+              {state.user?.firstName?.[0]}{state.user?.lastName?.[0]}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="body2" fontWeight="medium">
+              {state.user?.firstName} {state.user?.lastName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {state.user?.role === 'super_admin' ? 'Super Administrator' : 'Organization Admin'}
+            </Typography>
+          </Box>
+        </Box>
+        {state.user?.role !== 'super_admin' && state.currentOrganization && (
+          <Chip
+            label={state.currentOrganization.subscriptionPlan.displayName}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        )}
+      </Box>
+
+      {/* Navigation Menu */}
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-        <List>
-          {navigationItems.map(item => renderNavItem(item))}
+        <List sx={{ pt: 1 }}>
+          {menuItems.map(item => renderMenuItem(item))}
         </List>
       </Box>
 
       {/* Footer */}
-      {open && (
-        <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-          <Typography variant="caption" color="text.secondary">
-            PropertyPro v1.0.0
-          </Typography>
-        </Box>
-      )}
+      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <Typography variant="caption" color="text.secondary" align="center" display="block">
+          PropertyPro v2.0.0
+        </Typography>
+        <Typography variant="caption" color="text.secondary" align="center" display="block">
+          {state.user?.role === 'super_admin' ? 'Platform Management' : 'Multi-Tenant SaaS'}
+        </Typography>
+      </Box>
     </Box>
   );
 
   return (
     <Drawer
       variant={variant}
+      anchor="left"
       open={open}
       onClose={onClose}
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile.
+      }}
       sx={{
-        width: open ? 280 : 72,
-        flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: open ? 280 : 72,
           boxSizing: 'border-box',
-          transition: theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
-          overflowX: 'hidden',
+          width: 280,
+          backgroundColor: 'background.paper',
         },
       }}
     >
