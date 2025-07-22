@@ -1,0 +1,541 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  PROPERTY_MANAGER
+  LANDLORD
+  TENANT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TRIAL
+  CANCELLED
+}
+
+enum PropertyType {
+  RESIDENTIAL
+  COMMERCIAL
+  MIXED_USE
+  INDUSTRIAL
+}
+
+enum PropertyClass {
+  SINGLE_FAMILY
+  MULTI_FAMILY
+  APARTMENT
+  CONDO
+  TOWNHOUSE
+  OFFICE
+  RETAIL
+  WAREHOUSE
+}
+
+enum UnitStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+enum LeaseStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  RENEWED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  ACH
+  CREDIT_CARD
+  ONLINE
+  MONEY_ORDER
+}
+
+enum MaintenanceStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum BackgroundCheckStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NOT_REQUIRED
+}
+
+// Core Models
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  phone          String?
+  avatar         String?
+  role           UserRole
+  organizationId String?
+  permissions    String[]
+  isActive       Boolean  @default(true)
+  lastLogin      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization           Organization?         @relation(fields: [organizationId], references: [id])
+  ownedOrganizations     Organization[]        @relation("OrganizationOwner")
+  properties             Property[]
+  tenantProfile          Tenant?
+  maintenanceRequests    MaintenanceRequest[]
+  createdApplications    Application[]
+  payments               Payment[]
+  expenses               Expense[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
+
+  @@map("users")
+}
+
+model Organization {
+  id                     String             @id @default(cuid())
+  name                   String
+  slug                   String             @unique
+  description            String?
+  logo                   String?
+  email                  String?
+  phone                  String?
+  website                String?
+  subscriptionPlan       Json
+  subscriptionStatus     SubscriptionStatus
+  subscriptionStartDate  DateTime
+  subscriptionEndDate    DateTime?
+  maxProperties          Int
+  maxUsers               Int
+  features               String[]
+  settings               Json
+  ownerId                String
+  isActive               Boolean            @default(true)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  // Relations
+  owner                  User               @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  users                  User[]
+  properties             Property[]
+  tenants                Tenant[]
+  leases                 Lease[]
+  payments               Payment[]
+  expenses               Expense[]
+  maintenanceRequests    MaintenanceRequest[]
+  vendors                Vendor[]
+  mortgages              Mortgage[]
+  applications           Application[]
+  notifications          Notification[]
+  invoices               Invoice[]
+  auditLogs              AuditLog[]
+
+  @@map("organizations")
+}
+
+model Property {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  type           PropertyType
+  propertyClass  PropertyClass
+  address        Json
+  totalUnits     Int
+  yearBuilt      Int?
+  squareFootage  Int?
+  lotSize        Int?
+  purchasePrice  Decimal?
+  purchaseDate   DateTime?
+  marketValue    Decimal?
+  amenities      String[]
+  images         String[]
+  managerId      String
+  ownerId        String
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  organization        Organization          @relation(fields: [organizationId], references: [id])
+  manager             User                  @relation(fields: [managerId], references: [id])
+  units               Unit[]
+  leases              Lease[]
+  expenses            Expense[]
+  maintenanceRequests MaintenanceRequest[]
+  mortgages           Mortgage[]
+  applications        Application[]
+
+  @@map("properties")
+}
+
+model Unit {
+  id                String     @id @default(cuid())
+  propertyId        String
+  unitNumber        String
+  type              String
+  squareFootage     Int?
+  bedrooms          Int
+  bathrooms         Decimal
+  rent              Decimal
+  deposit           Decimal
+  status            UnitStatus @default(VACANT)
+  amenities         String[]
+  images            String[]
+  currentLeaseId    String?
+  isActive          Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // Relations
+  property            Property             @relation(fields: [propertyId], references: [id])
+  currentLease        Lease?               @relation("CurrentLease", fields: [currentLeaseId], references: [id])
+  leases              Lease[]              @relation("UnitLeases")
+  maintenanceRequests MaintenanceRequest[]
+  applications        Application[]
+
+  @@map("units")
+}
+
+model Tenant {
+  id                     String                @id @default(cuid())
+  organizationId         String
+  userId                 String?               @unique
+  firstName              String
+  lastName               String
+  email                  String
+  phone                  String?
+  dateOfBirth            DateTime?
+  emergencyContact       Json?
+  employment             Json?
+  creditScore            Int?
+  backgroundCheckStatus  BackgroundCheckStatus
+  documents              Json[]
+  isActive               Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
+  // Relations
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+  user            User?           @relation(fields: [userId], references: [id])
+  leases          Lease[]
+  payments        Payment[]
+  applications    Application[]
+
+  @@map("tenants")
+}
+
+model Lease {
+  id                  String      @id @default(cuid())
+  organizationId      String
+  propertyId          String
+  unitId              String
+  tenantIds           String[]
+  startDate           DateTime
+  endDate             DateTime
+  rentAmount          Decimal
+  depositAmount       Decimal
+  leaseTerms          String
+  status              LeaseStatus @default(DRAFT)
+  paymentDueDay       Int
+  lateFeeAmount       Decimal
+  lateFeeGracePeriod  Int
+  petPolicy           Json?
+  utilities           Json[]
+  documents           Json[]
+  renewalOptions      Json[]
+  isActive            Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  property     Property     @relation(fields: [propertyId], references: [id])
+  unit         Unit         @relation("UnitLeases", fields: [unitId], references: [id])
+  currentUnit  Unit?        @relation("CurrentLease")
+  tenants      Tenant[]
+  payments     Payment[]
+
+  @@map("leases")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  organizationId String
+  leaseId        String
+  tenantId       String
+  type           String
+  amount         Decimal
+  dueDate        DateTime
+  paidDate       DateTime?
+  paymentMethod  PaymentMethod?
+  status         PaymentStatus @default(PENDING)
+  reference      String?
+  notes          String?
+  fees           Json          @default("{}")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  lease        Lease        @relation(fields: [leaseId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  createdBy    User         @relation(fields: [createdAt], references: [createdAt])
+
+  @@map("payments")
+}
+
+model Expense {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  propertyId           String?
+  unitId               String?
+  category             String
+  subcategory          String?
+  description          String
+  amount               Decimal
+  date                 DateTime
+  vendor               String?
+  paymentMethod        String?
+  receipt              String?
+  isRecurring          Boolean  @default(false)
+  recurringFrequency   String?
+  taxDeductible        Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  property     Property?    @relation(fields: [propertyId], references: [id])
+  createdBy    User         @relation(fields: [createdAt], references: [createdAt])
+
+  @@map("expenses")
+}
+
+model MaintenanceRequest {
+  id             String              @id @default(cuid())
+  organizationId String
+  unitId         String
+  tenantId       String?
+  title          String
+  description    String
+  category       String
+  priority       MaintenancePriority
+  status         MaintenanceStatus   @default(SUBMITTED)
+  images         String[]
+  assignedTo     String?
+  estimatedCost  Decimal?
+  actualCost     Decimal?
+  scheduledDate  DateTime?
+  completedDate  DateTime?
+  notes          String[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  unit         Unit         @relation(fields: [unitId], references: [id])
+  tenant       Tenant?      @relation(fields: [tenantId], references: [id])
+  assignedUser User?        @relation(fields: [assignedTo], references: [id])
+  property     Property     @relation(fields: [unitId], references: [id])
+
+  @@map("maintenance_requests")
+}
+
+model Vendor {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  name                 String
+  contactPerson        String?
+  email                String?
+  phone                String?
+  address              Json?
+  services             String[]
+  rating               Decimal?
+  insuranceExpiry      DateTime?
+  licenseNumber        String?
+  preferredCategories  String[]
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("vendors")
+}
+
+model Mortgage {
+  id             String            @id @default(cuid())
+  organizationId String
+  propertyId     String
+  lender         String
+  loanAmount     Decimal
+  interestRate   Decimal
+  termYears      Int
+  monthlyPayment Decimal
+  startDate      DateTime
+  maturityDate   DateTime
+  currentBalance Decimal
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relations
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  property       Property          @relation(fields: [propertyId], references: [id])
+  paymentHistory MortgagePayment[]
+
+  @@map("mortgages")
+}
+
+model MortgagePayment {
+  id               String   @id @default(cuid())
+  mortgageId       String
+  date             DateTime
+  amount           Decimal
+  principal        Decimal
+  interest         Decimal
+  escrow           Decimal?
+  remainingBalance Decimal
+  createdAt        DateTime @default(now())
+
+  // Relations
+  mortgage Mortgage @relation(fields: [mortgageId], references: [id])
+
+  @@map("mortgage_payments")
+}
+
+model Application {
+  id             String            @id @default(cuid())
+  organizationId String
+  propertyId     String
+  unitId         String?
+  applicantInfo  Json
+  employmentInfo Json
+  references     Json[]
+  status         ApplicationStatus @default(SUBMITTED)
+  submittedAt    DateTime          @default(now())
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  notes          String?
+  documents      Json[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+  property     Property     @relation(fields: [propertyId], references: [id])
+  unit         Unit?        @relation(fields: [unitId], references: [id])
+  applicant    Tenant       @relation(fields: [applicantInfo], references: [id])
+  reviewer     User?        @relation(fields: [reviewedBy], references: [id])
+
+  @@map("applications")
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  type           String
+  title          String
+  message        String
+  priority       String   @default("MEDIUM")
+  isRead         Boolean  @default(false)
+  actionUrl      String?
+  createdAt      DateTime @default(now())
+
+  // Relations
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model Invoice {
+  id                     String   @id @default(cuid())
+  organizationId         String
+  amount                 Decimal
+  currency               String   @default("USD")
+  status                 String   @default("PENDING")
+  dueDate                DateTime
+  paidDate               DateTime?
+  subscriptionPeriodStart DateTime
+  subscriptionPeriodEnd  DateTime
+  lineItems              Json[]
+  paymentMethod          String?
+  stripeInvoiceId        String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("invoices")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String
+  action         String
+  resource       String
+  resourceId     String
+  oldValues      Json?
+  newValues      Json?
+  ipAddress      String
+  userAgent      String
+  timestamp      DateTime @default(now())
+
+  // Relations
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
