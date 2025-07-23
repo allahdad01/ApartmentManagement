@@ -69,16 +69,17 @@ export default function Login() {
     <Container component="main" maxWidth="sm">
       <Box
         sx={{
-          marginTop: 8,
+          marginTop: { xs: 4, sm: 8 },
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          px: { xs: 2, sm: 0 },
         }}
       >
         <Paper
           elevation={3}
           sx={{
-            padding: 4,
+            padding: { xs: 3, sm: 4 },
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -86,13 +87,31 @@ export default function Login() {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Business sx={{ fontSize: 40, color: 'primary.main', mr: 1 }} />
-            <Typography component="h1" variant="h4" color="primary">
+            <Business sx={{ 
+              fontSize: { xs: 32, sm: 40 }, 
+              color: 'primary.main', 
+              mr: 1 
+            }} />
+            <Typography 
+              component="h1" 
+              variant="h4" 
+              color="primary"
+              sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
+            >
               PropertyPro
             </Typography>
           </Box>
           
-          <Typography component="h2" variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography 
+            component="h2" 
+            variant="h6" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 3,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              textAlign: 'center'
+            }}
+          >
             Advanced Property Management SaaS
           </Typography>
 

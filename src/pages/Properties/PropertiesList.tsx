@@ -206,17 +206,20 @@ const PropertiesList: React.FC = () => {
       </Paper>
 
       {/* Properties Grid */}
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         {filteredProperties.map((property) => {
           const occupancyRate = getOccupancyRate(property);
           const monthlyRevenue = getMonthlyRevenue(property);
           
           return (
-            <Grid item xs={12} md={6} lg={4} key={property.id}>
+            <Grid item xs={12} sm={6} md={6} lg={4} key={property.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 {/* Property Image */}
                 <CardMedia
-                  sx={{ height: 200, position: 'relative' }}
+                  sx={{ 
+                    height: { xs: 160, sm: 180, md: 200 }, 
+                    position: 'relative' 
+                  }}
                   image={property.images?.[0] || '/api/placeholder/400/200'}
                   title={property.name}
                 >
@@ -239,14 +242,26 @@ const PropertiesList: React.FC = () => {
                   </Box>
                 </CardMedia>
 
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}>
                   {/* Property Name and Address */}
-                  <Typography variant="h6" gutterBottom noWrap>
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    noWrap
+                    sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
+                  >
                     {property.name}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <LocationOn fontSize="small" color="action" />
-                    <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        ml: 0.5,
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                      }}
+                    >
                       {property.address.city}, {property.address.state}
                     </Typography>
                   </Box>

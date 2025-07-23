@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
@@ -13,96 +13,9 @@ import TenantsList from './pages/Tenants/TenantsList';
 import MaintenanceList from './pages/Maintenance/MaintenanceList';
 import PaymentsList from './pages/Financial/PaymentsList';
 import PlatformDashboard from './pages/SuperAdmin/PlatformDashboard';
+import mobileTheme from './theme/mobileTheme';
 
-// Create a custom theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-    success: {
-      main: '#2e7d32',
-      light: '#4caf50',
-      dark: '#1b5e20',
-    },
-    warning: {
-      main: '#ed6c02',
-      light: '#ff9800',
-      dark: '#e65100',
-    },
-    error: {
-      main: '#d32f2f',
-      light: '#f44336',
-      dark: '#c62828',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-      fontWeight: 600,
-    },
-    h5: {
-      fontWeight: 600,
-    },
-    h6: {
-      fontWeight: 600,
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          transition: 'box-shadow 0.3s ease-in-out, transform 0.2s ease-in-out',
-          '&:hover': {
-            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          },
-        },
-      },
-    },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 600,
-          borderRadius: 8,
-        },
-        contained: {
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          '&:hover': {
-            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-          },
-        },
-      },
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          fontWeight: 500,
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundImage: 'none',
-        },
-      },
-    },
-  },
-});
+// Use mobile-optimized theme
 
 // Protected Route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: string }> = ({ 
@@ -340,7 +253,7 @@ const ComingSoon: React.FC<{ title: string; description?: string }> = ({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={mobileTheme}>
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <AppProvider>

@@ -95,17 +95,34 @@ const StatCard: React.FC<StatCardProps> = ({
       sx={{ 
         cursor: onClick ? 'pointer' : 'default',
         transition: 'transform 0.2s',
-        '&:hover': onClick ? { transform: 'translateY(-2px)' } : {}
+        '&:hover': onClick ? { transform: 'translateY(-2px)' } : {},
+        height: '100%'
       }}
       onClick={onClick}
     >
-      <CardContent>
+      <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography color="textSecondary" gutterBottom variant="body2">
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography 
+              color="textSecondary" 
+              gutterBottom 
+              variant="body2"
+              sx={{ 
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                lineHeight: 1.2
+              }}
+            >
               {title}
             </Typography>
-            <Typography variant="h4" component="div">
+            <Typography 
+              variant="h4" 
+              component="div"
+              sx={{ 
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+                fontWeight: 600,
+                lineHeight: 1.2
+              }}
+            >
               {value}
             </Typography>
             {change !== undefined && (
@@ -173,8 +190,8 @@ const Dashboard: React.FC = () => {
       </Box>
 
       {/* Key Metrics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 3, md: 4 } }}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             title="Total Properties"
             value={stats.totalProperties}
@@ -184,7 +201,7 @@ const Dashboard: React.FC = () => {
             onClick={() => navigate('/properties')}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             title="Occupancy Rate"
             value={`${stats.occupancyRate}%`}
@@ -194,7 +211,7 @@ const Dashboard: React.FC = () => {
             onClick={() => navigate('/reports/occupancy')}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             title="Monthly Revenue"
             value={`$${(stats.monthlyRevenue / 1000).toFixed(0)}K`}
@@ -204,7 +221,7 @@ const Dashboard: React.FC = () => {
             onClick={() => navigate('/reports/financial')}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <StatCard
             title="Pending Maintenance"
             value={stats.pendingMaintenance}
@@ -216,14 +233,14 @@ const Dashboard: React.FC = () => {
       </Grid>
 
       {/* Charts Row */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 3, md: 4 } }}>
         {/* Revenue Chart */}
         <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Revenue vs Expenses
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={{ xs: 250, md: 300 }}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -252,11 +269,11 @@ const Dashboard: React.FC = () => {
 
         {/* Occupancy Chart */}
         <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="h6" gutterBottom>
               Unit Status
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={{ xs: 250, md: 300 }}>
               <PieChart>
                 <Pie
                   data={occupancyData}

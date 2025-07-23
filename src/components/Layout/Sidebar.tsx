@@ -55,6 +55,7 @@ interface SidebarProps {
   open: boolean;
   onClose: () => void;
   variant?: 'permanent' | 'temporary';
+  width?: number;
 }
 
 interface MenuItem {
@@ -362,7 +363,8 @@ const organizationMenuItems: MenuItem[] = [
 const Sidebar: React.FC<SidebarProps> = ({ 
   open, 
   onClose, 
-  variant = 'temporary' 
+  variant = 'temporary',
+  width = 280
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -567,10 +569,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         keepMounted: true, // Better open performance on mobile.
       }}
       sx={{
+        width: { xs: 0, md: variant === 'permanent' ? width : 0 },
+        flexShrink: 0,
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
-          width: 280,
+          width: width,
           backgroundColor: 'background.paper',
+          borderRight: theme.palette.mode === 'light' ? '1px solid rgba(0, 0, 0, 0.12)' : '1px solid rgba(255, 255, 255, 0.12)',
+          // Mobile specific styles
+          ...(isMobile && {
+            width: '100vw',
+            maxWidth: width,
+          }),
         },
       }}
     >

@@ -215,28 +215,36 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <MenuIcon />
           </IconButton>
 
-          {!isMobile && (
-            <Typography variant="h6" noWrap component="div" sx={{ mr: 4 }}>
-              PropertyPro
-            </Typography>
-          )}
+          <Typography 
+            variant={isMobile ? "h6" : "h6"} 
+            noWrap 
+            component="div" 
+            sx={{ 
+              mr: { xs: 1, md: 4 },
+              fontSize: { xs: '1.1rem', md: '1.25rem' }
+            }}
+          >
+            {isMobile ? 'PropertyPro' : 'PropertyPro'}
+          </Typography>
 
-          {/* Property Selector */}
-          <FormControl size="small" sx={{ minWidth: 200, mr: 2 }}>
-            <InputLabel>Property</InputLabel>
-            <Select
-              value={selectedPropertyId}
-              label="Property"
-              onChange={(e) => handlePropertyChange(e.target.value)}
-            >
-              <MenuItem value="all">All Properties</MenuItem>
-              {state.properties.map((property) => (
-                <MenuItem key={property.id} value={property.id}>
-                  {property.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Property Selector - Hidden on mobile */}
+          {!isMobile && (
+            <FormControl size="small" sx={{ minWidth: 200, mr: 2 }}>
+              <InputLabel>Property</InputLabel>
+              <Select
+                value={selectedPropertyId}
+                label="Property"
+                onChange={(e) => handlePropertyChange(e.target.value)}
+              >
+                <MenuItem value="all">All Properties</MenuItem>
+                {state.properties.map((property) => (
+                  <MenuItem key={property.id} value={property.id}>
+                    {property.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           <Box sx={{ flexGrow: 1 }} />
 
@@ -259,23 +267,26 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             </Box>
           )}
 
-          {/* Quick Actions */}
-          <IconButton
-            color="inherit"
-            onClick={() => navigate('/properties/add')}
-            title="Add Property"
-          >
-            <Add />
-          </IconButton>
+          {/* Quick Actions - Only show on desktop */}
+          {!isMobile && (
+            <IconButton
+              color="inherit"
+              onClick={() => navigate('/properties/add')}
+              title="Add Property"
+            >
+              <Add />
+            </IconButton>
+          )}
 
           {/* Notifications */}
           <IconButton
             color="inherit"
             onClick={handleNotificationMenuOpen}
             title="Notifications"
+            size={isMobile ? 'small' : 'medium'}
           >
             <Badge badgeContent={unreadNotifications.length} color="error">
-              <Notifications />
+              <Notifications fontSize={isMobile ? 'small' : 'medium'} />
             </Badge>
           </IconButton>
 
@@ -287,15 +298,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             aria-haspopup="true"
             onClick={handleProfileMenuOpen}
             color="inherit"
-            sx={{ ml: 1 }}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ ml: { xs: 0.5, md: 1 } }}
           >
             {state.user?.avatar ? (
               <Avatar 
                 src={state.user.avatar} 
-                sx={{ width: 32, height: 32 }}
+                sx={{ 
+                  width: isMobile ? 28 : 32, 
+                  height: isMobile ? 28 : 32 
+                }}
               />
             ) : (
-              <AccountCircle />
+              <AccountCircle fontSize={isMobile ? 'small' : 'medium'} />
             )}
           </IconButton>
         </Toolbar>
