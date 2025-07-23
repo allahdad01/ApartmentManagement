@@ -1,41 +1,49 @@
 import axios, { AxiosInstance } from 'axios';
 
-// Types
+// Types (matching Prisma schema exactly)
 export interface User {
   id: string;
   email: string;
+  // passwordHash is excluded from frontend interface for security
   firstName: string;
   lastName: string;
-  role: 'SUPER_ADMIN' | 'ORGANIZATION_ADMIN' | 'PROPERTY_MANAGER' | 'TENANT';
   phone?: string;
   avatar?: string;
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'PROPERTY_MANAGER' | 'LANDLORD' | 'TENANT';
   organizationId?: string;
-  organization?: Organization;
+  permissions: string[];
   isActive: boolean;
+  lastLogin?: string;
   createdAt: string;
   updatedAt: string;
-  lastLogin?: string;
+  organization?: Organization;
 }
 
 export interface Organization {
   id: string;
   name: string;
-  email: string;
+  slug: string;
+  description?: string;
+  logo?: string;
+  email?: string;
   phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  type: 'PROPERTY_MANAGEMENT' | 'REAL_ESTATE' | 'INDIVIDUAL';
-  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-  contactPerson?: string;
   website?: string;
-  subscription?: Subscription;
+  subscriptionPlan: any; // JSON field
+  subscriptionStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TRIAL' | 'CANCELLED';
+  subscriptionStartDate: string;
+  subscriptionEndDate?: string;
+  maxProperties: number;
+  maxUsers: number;
+  features: string[];
+  settings: any; // JSON field
+  ownerId: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+// Subscription is now part of Organization model in Prisma schema
+// Keeping this interface for backward compatibility if needed
 export interface Subscription {
   id: string;
   organizationId: string;
@@ -47,21 +55,24 @@ export interface Subscription {
 
 export interface Property {
   id: string;
+  organizationId: string;
   name: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  type: 'APARTMENT' | 'HOUSE' | 'CONDO' | 'TOWNHOUSE' | 'COMMERCIAL';
   description?: string;
+  type: 'RESIDENTIAL' | 'COMMERCIAL' | 'MIXED_USE' | 'INDUSTRIAL';
+  propertyClass: 'SINGLE_FAMILY' | 'MULTI_FAMILY' | 'APARTMENT' | 'CONDO' | 'TOWNHOUSE' | 'OFFICE' | 'RETAIL' | 'WAREHOUSE';
+  address: any; // JSON field in schema
   totalUnits: number;
   yearBuilt?: number;
+  squareFootage?: number;
+  lotSize?: number;
+  purchasePrice?: number;
+  purchaseDate?: string;
+  marketValue?: number;
   amenities: string[];
   images: string[];
-  features: string[];
-  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
-  organizationId: string;
+  managerId: string;
+  ownerId: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
   units?: Unit[];
@@ -76,39 +87,44 @@ export interface Unit {
   id: string;
   propertyId: string;
   unitNumber: string;
-  bedrooms: number;
-  bathrooms: number;
+  type: string;
   squareFootage?: number;
-  rentAmount: number;
-  securityDeposit?: number;
+  bedrooms: number;
+  bathrooms: number; // Decimal in schema
+  rent: number; // Decimal in schema
+  deposit: number; // Decimal in schema
   status: 'VACANT' | 'OCCUPIED' | 'MAINTENANCE' | 'UNAVAILABLE';
-  features: string[];
+  amenities: string[];
   images: string[];
-  tenantId?: string;
-  tenant?: Tenant;
-  lease?: Lease;
+  currentLeaseId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
   property?: Property;
+  currentLease?: Lease;
+  leases?: Lease[];
 }
 
 export interface Tenant {
   id: string;
+  organizationId: string;
+  userId?: string;
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  phone?: string;
   dateOfBirth?: string;
-  unitId?: string;
-  organizationId: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'MOVED_OUT';
-  employmentInfo?: any;
-  emergencyContact?: EmergencyContact;
-  unit?: Unit;
-  lease?: Lease;
-  payments?: Payment[];
-  maintenanceRequests?: MaintenanceRequest[];
-  documents?: Document[];
+  emergencyContact?: any; // JSON field in schema
+  employment?: any; // JSON field in schema
+  creditScore?: number;
+  backgroundCheckStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_REQUIRED';
+  documents: any[]; // JSON array in schema
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  user?: User;
+  leases?: Lease[];
+  payments?: Payment[];
 }
 
 export interface EmergencyContact {
@@ -122,73 +138,75 @@ export interface EmergencyContact {
 
 export interface Lease {
   id: string;
-  tenantId: string;
+  organizationId: string;
+  propertyId: string;
   unitId: string;
+  tenantIds: string[]; // Array in schema
   startDate: string;
   endDate: string;
-  rentAmount: number;
-  securityDeposit: number;
-  petDeposit?: number;
-  leaseTerms?: any;
-  specialConditions?: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'PENDING';
-  tenant?: Tenant;
-  unit?: Unit;
-  payments?: Payment[];
-  documents?: Document[];
+  rentAmount: number; // Decimal in schema
+  depositAmount: number; // Decimal in schema
+  leaseTerms: string;
+  status: 'DRAFT' | 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
+  paymentDueDay: number;
+  lateFeeAmount: number; // Decimal in schema
+  lateFeeGracePeriod: number;
+  petPolicy?: any; // JSON field
+  utilities: any[]; // JSON array
+  documents: any[]; // JSON array
+  renewalOptions: any[]; // JSON array
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  property?: Property;
+  unit?: Unit;
+  tenants?: Tenant[];
+  payments?: Payment[];
 }
 
 export interface Payment {
   id: string;
-  tenantId: string;
+  organizationId: string;
   leaseId: string;
-  amount: number;
-  type: 'RENT' | 'DEPOSIT' | 'FEE' | 'UTILITY' | 'OTHER';
-  description: string;
+  tenantId: string;
+  type: string;
+  amount: number; // Decimal in schema
   dueDate: string;
   paidDate?: string;
-  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
-  paymentMethod?: string;
-  transactionId?: string;
-  lateFee?: number;
-  isRecurring: boolean;
-  recurringFrequency?: 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+  paymentMethod?: 'CASH' | 'CHECK' | 'ACH' | 'CREDIT_CARD' | 'ONLINE' | 'MONEY_ORDER';
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'PARTIAL' | 'REFUNDED';
+  reference?: string;
   notes?: string;
-  tenant?: Tenant;
-  lease?: Lease;
+  fees: any; // JSON field
   createdAt: string;
   updatedAt: string;
+  lease?: Lease;
+  tenant?: Tenant;
 }
 
 export interface MaintenanceRequest {
   id: string;
-  propertyId: string;
-  unitId?: string;
+  organizationId: string;
+  unitId: string;
   tenantId?: string;
   title: string;
   description: string;
   category: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY';
+  status: 'SUBMITTED' | 'ACKNOWLEDGED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   images: string[];
-  allowEntry: boolean;
-  preferredTime?: string;
-  estimatedCost?: number;
-  actualCost?: number;
-  completionNotes?: string;
-  assignedToId?: string;
-  assignedTo?: User;
-  assignedAt?: string;
-  completedAt?: string;
-  requestedBy: string;
-  property?: Property;
-  unit?: Unit;
-  tenant?: Tenant;
-  comments?: MaintenanceComment[];
+  assignedTo?: string;
+  estimatedCost?: number; // Decimal in schema
+  actualCost?: number; // Decimal in schema
+  scheduledDate?: string;
+  completedDate?: string;
+  notes: string[]; // Array in schema
   createdAt: string;
   updatedAt: string;
+  unit?: Unit;
+  tenant?: Tenant;
+  assignedUser?: User;
+  property?: Property;
 }
 
 export interface MaintenanceComment {

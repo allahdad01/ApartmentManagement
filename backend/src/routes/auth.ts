@@ -25,11 +25,12 @@ router.post('/register', async (req, res) => {
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         firstName,
         lastName,
         role,
         organizationId,
+        permissions: [],
         isActive: true
       },
       select: {
@@ -70,7 +71,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -86,7 +87,7 @@ router.post('/login', async (req, res) => {
       data: { lastLogin: new Date() }
     });
 
-    const { password: _, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = user;
 
     res.json({ user: userWithoutPassword, token, message: 'Login successful' });
   } catch (error) {
